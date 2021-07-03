@@ -152,7 +152,7 @@ export class Client {
    * @param url the url used to connect to the event bus
    * @param token the authentication token
    * @param options the client options
-   * @return a new instance of the client
+   * @return a Promise that completes with a new instance of the client
    */
   static async create(url: string, token: string, options?: ClientOptions) {
     const privateKey = readFileSync('./.private.key', 'utf8')

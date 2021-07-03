@@ -11,10 +11,7 @@
     "sourceMap": true,
     "declaration": true,
     "outDir": "./dist",
-    "target": "esnext",
-    "lib": [
-      "esnext"
-    ]
+    "target": "es2015",
   },
   "exclude": [
     "node_modules"
