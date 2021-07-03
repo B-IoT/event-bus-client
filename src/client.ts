@@ -146,6 +146,14 @@ export class Client {
     this.options = options
   }
 
+  /**
+   * Factory method to create the client.
+   *
+   * @param url the url used to connect to the event bus
+   * @param token the authentication token
+   * @param options the client options
+   * @return a new instance of the client
+   */
   static async create(url: string, token: string, options?: ClientOptions) {
     const privateKey = readFileSync('./.private.key', 'utf8')
     const { payload } = await jwtDecrypt(token, new TextEncoder().encode(privateKey), {
@@ -155,6 +163,11 @@ export class Client {
     return new Client(`${url}?token=${token}`, company, options)
   }
 
+  /**
+   * Connects the client to the event bus.
+   *
+   * @return a Promise that completes when the connection is established
+   */
   async connect(): Promise<void> {
     return new Promise((resolve) => {
       const options = this.options && {
@@ -183,10 +196,18 @@ export class Client {
     })
   }
 
+  /**
+   * Disconnects the client.
+   */
   disconnect() {
     this.bus.close()
   }
 
+  /**
+   * Registers a callback to be called on item update.
+   *
+   * @param callback the callback to invoke
+   */
   onItemUpdate(callback: UpdateCallback) {
     this.onItemUpdateCallback = callback
   }
