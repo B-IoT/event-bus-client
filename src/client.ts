@@ -1,9 +1,7 @@
-import { jwtDecrypt } from 'jose/jwt/decrypt'
-import { readFileSync } from 'fs'
 const EventBus = require('@vertx/eventbus-bridge-client.js')
 
 /**
- * Update type.
+ * The update type.
  */
 export enum UpdateType {
   POST = 'POST',
@@ -12,7 +10,7 @@ export enum UpdateType {
 }
 
 // /**
-//  * Notification type.
+//  * The notification type.
 //  */
 // export enum NotificationType {
 //   BROKEN = 'BROKEN',
@@ -21,7 +19,7 @@ export enum UpdateType {
 // }
 
 /**
- * Client options.
+ * The client options.
  */
 export interface ClientOptions {
   /**
@@ -55,7 +53,7 @@ export interface ClientOptions {
 }
 
 /**
- * Update callback.
+ * An update callback.
  */
 export type UpdateCallback = (
   /**
@@ -130,6 +128,16 @@ export interface BusError {
   message: string
 }
 
+interface Bus {
+  enableReconnect: (value: boolean) => void
+  onopen: () => void
+  registerHandler: (
+    address: string,
+    handler: (error: BusError, message: BusMessage) => void,
+  ) => void
+  close: () => void
+}
+
 /**
  * A client to communicate with the event bus.
  */
@@ -137,30 +145,19 @@ export class Client {
   private url: string
   private company: string
   private options?: ClientOptions
-  private bus: any
+  private bus: Bus
   private onItemUpdateCallback: UpdateCallback
 
-  private constructor(url: string, company: string, options: ClientOptions) {
-    this.url = url
-    this.company = company
-    this.options = options
-  }
-
   /**
-   * Factory method to create the client.
-   *
    * @param url the url used to connect to the event bus
    * @param token the authentication token
-   * @param options the client options
-   * @return a Promise that completes with a new instance of the client
+   * @param company the client's company
+   * @param options the client's options. Optional
    */
-  static async create(url: string, token: string, options?: ClientOptions) {
-    const privateKey = readFileSync('./.private.key', 'utf8')
-    const { payload } = await jwtDecrypt(token, new TextEncoder().encode(privateKey), {
-      issuer: 'BioT',
-    })
-    const company = payload.company as string
-    return new Client(`${url}?token=${token}`, company, options)
+  constructor(url: string, token: string, company: string, options?: ClientOptions) {
+    this.url = `${url}?token=${token}`
+    this.company = company
+    this.options = options
   }
 
   /**
@@ -169,29 +166,35 @@ export class Client {
    * @return a Promise that completes when the connection is established
    */
   async connect(): Promise<void> {
-    return new Promise((resolve) => {
-      const options = this.options && {
-        vertxbus_ping_interval: this.options.pingInterval,
-        vertxbus_reconnect_attempts_max: this.options.maxReconnectAttempts,
-        vertxbus_reconnect_delay_min: this.options.minReconnectDelay,
-        vertxbus_reconnect_delay_max: this.options.maxReconnectDelay,
-        vertxbus_reconnect_exponent: this.options.reconnectExponentialBackoffFactor,
-        vertxbus_randomization_factor: this.options.randomizationFactor,
-      }
-      const bus = new EventBus(this.url, options)
-      bus.enableReconnect(true)
+    return new Promise((resolve, reject) => {
+      try {
+        const options = this.options && {
+          vertxbus_ping_interval: this.options.pingInterval,
+          vertxbus_reconnect_attempts_max: this.options.maxReconnectAttempts,
+          vertxbus_reconnect_delay_min: this.options.minReconnectDelay,
+          vertxbus_reconnect_delay_max: this.options.maxReconnectDelay,
+          vertxbus_reconnect_exponent: this.options.reconnectExponentialBackoffFactor,
+          vertxbus_randomization_factor: this.options.randomizationFactor,
+        }
+        this.bus = new EventBus(this.url, options)
+        this.bus.enableReconnect(true)
 
-      bus.onopen = () => {
-        resolve()
-
-        bus.registerHandler(
-          `items.updates.${this.company}`,
-          (error: BusError, message: BusMessage) => {
-            const body = message.body
-            this.onItemUpdateCallback &&
-              this.onItemUpdateCallback(body.type, body.id, body.content, error)
-          },
-        )
+        this.bus.onopen = () => {
+          this.bus.registerHandler(
+            `items.updates.${this.company}`,
+            (error: BusError, message: BusMessage) => {
+              const body = message.body
+              if (this.onItemUpdateCallback) {
+                this.onItemUpdateCallback(body.type, body.id, body.content, error)
+              } else {
+                console.error('No callback was registered for item update')
+              }
+            },
+          )
+          resolve()
+        }
+      } catch (error) {
+        reject(error)
       }
     })
   }
@@ -200,7 +203,11 @@ export class Client {
    * Disconnects the client.
    */
   disconnect() {
-    this.bus.close()
+    if (this.bus) {
+      this.bus.close()
+    } else {
+      console.error('The client is not connected')
+    }
   }
 
   /**

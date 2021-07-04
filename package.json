@@ -1,7 +1,7 @@
 {
   "name": "@biot-dev/event-bus-client",
-  "version": "1.0.2",
-  "description": "BioT's Vert.x Event Bus client",
+  "version": "1.0.3",
+  "description": "BioT's Vert.x Event Bus client for real-time updates and notifications",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
@@ -25,8 +25,7 @@
     "format:ts": "prettier --write \"**/*.ts{,x}\""
   },
   "dependencies": {
-    "@vertx/eventbus-bridge-client.js": "^1.0.0",
-    "jose": "^3.14.0"
+    "@vertx/eventbus-bridge-client.js": "^1.0.0"
   },
   "devDependencies": {
     "@types/node": "^16.0.0",
