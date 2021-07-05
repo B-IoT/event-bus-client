@@ -146,7 +146,7 @@ export class Client {
   private company: string
   private options?: ClientOptions
   private bus: Bus
-  private onItemUpdateCallback: UpdateCallback
+  private onItemUpdateCallbacks: Array<UpdateCallback>
 
   /**
    * @param url the url used to connect to the event bus
@@ -158,6 +158,7 @@ export class Client {
     this.url = `${url}?token=${token}`
     this.company = company
     this.options = options
+    this.onItemUpdateCallbacks = []
   }
 
   /**
@@ -184,8 +185,10 @@ export class Client {
             `items.updates.${this.company}`,
             (error: BusError, message: BusMessage) => {
               const body = message.body
-              if (this.onItemUpdateCallback) {
-                this.onItemUpdateCallback(body.type, body.id, body.content, error)
+              if (this.onItemUpdateCallbacks.length > 0) {
+                this.onItemUpdateCallbacks.forEach(
+                  (callback) => callback && callback(body.type, body.id, body.content, error),
+                )
               } else {
                 console.error('No callback was registered for item update')
               }
@@ -216,7 +219,7 @@ export class Client {
    * @param callback the callback to invoke
    */
   onItemUpdate(callback: UpdateCallback) {
-    this.onItemUpdateCallback = callback
+    this.onItemUpdateCallbacks.push(callback)
   }
 
   // onItemNotification(callback: NotificationCallback) {

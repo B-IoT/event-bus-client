@@ -1,6 +1,6 @@
 {
   "name": "@biot-dev/event-bus-client",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "BioT's Vert.x Event Bus client for real-time updates and notifications",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
